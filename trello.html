@@ -1,0 +1,362 @@
+<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<!-- The CSS package above applies standard Google Apps styling to buttons and other elements. -->
+<style>
+*{
+font-family:Helvetica, Arial, 'lucida grande',tahoma,verdana,arial,sans-serif;
+font-size:12px;
+}
+.loading-img {
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+  margin-top:50px;
+}
+.threadSelected {
+  background-color:#87d354;
+  padding:8px;
+  display:block !important;
+  cursor:pointer;
+}
+.thread {
+  padding:8px;
+  cursor:pointer;
+}
+.threadSelected .qtt{
+   display:block;
+}
+ .qtt{
+   display:none;
+}
+#mainPanel{
+  margin-bottom:15px;
+}
+
+#control{
+  padding:10px 5px;
+}
+.blue{ background:#3079ed;}
+tr{
+  background:none;
+}
+tr:hover{
+   background:#ffc;
+}
+.loading-img{
+   display:none;
+ }
+#mainPanel img{
+   max-height:100px;
+   max-width:100px; 
+   cursor:pointer;
+} 
+ #tl_campaigns img{
+   width:100px;
+   height:100px;
+   display:block;
+} 
+#tl_campaigns .thumb{
+  display:block;
+  float:left;
+  padding:3px;
+  position:relative;
+  text-align:center;
+  width:99px;
+  height:135px;
+  overflow:hidden;
+  border: 1px solid #ddd;
+    margin: 2px;
+}
+span.delete{
+    position: absolute;
+    display:none;
+    top: 0;
+    right: 0;
+    border: 1px solid red;
+
+    background: white;
+    width: 17px;
+    cursor:pointer;
+}
+#tl_campaigns .thumb:hover .delete{
+  display:block;
+}
+
+ 
+</style>
+<span id="lbl_message"></span>
+<div id="control" style="display:none">
+  <input  type="search" id="txt_search" onfocus="this.select()" value="" placeholder="Enter campID" />
+    <button id="startButton" class="blue" >Search!</button>
+
+   
+     <hr/>
+</div>
+
+<div id="mainPanel">
+    
+</div>
+ <img class="loading-img" src="https://lh6.googleusercontent.com/-S87nMBe6KWE/TuB9dR48F0I/AAAAAAAAByQ/0Z96LirzDqg/s27/load.gif">
+<div id='tl_campaigns'>
+      
+
+
+</div>
+<div style="clear:both; border-bottom:1px solid #ddd;margin:5px 0"></div>
+ <button id="startImport" class="blue" style="padding:5px 10px;" >Import!</button>
+<script>
+  var appid= '<?= APIKey; ?>';
+  var boardid = '<?= BoardID; ?>';
+   var NeedToRunListID = '<?= NeedToRun_list; ?>';
+   var adBoard =  '<?= importDoneList; ?>';
+  var token = '<?= APIToken; ?>';
+  
+  // list id = '58f86e0b510d2fab918104f7';
+  
+  // list can chay ad = '59156194a9e09e8aaf2f610e';
+
+
+ $(function(){
+
+
+     $('#startButton').click(searchTrello);
+     
+     $('#mainPanel').on('click','img',function(){
+          if(confirm('Insert this image?'))
+          google.script.run.insertIMG($(this).attr('src'));
+     })
+     
+     $('#tl_campaigns').on('click','.delete',function(){
+        $(this).parent().remove();
+     })
+     
+     loadList();
+     
+     $('#startImport').click(function(){
+     if(!confirm('Bắt đầu import?')) return
+     $('.loading-img').show();
+     $(this).attr("disabled", "disabled");
+     google.script.run.withSuccessHandler(startImport).clearimport();
+      //startImport();
+     })
+ 
+ });
+ 
+ function startImport(e){
+   if(e) { 
+   
+        var cardID = e.id;
+              $.ajax({
+                  url: 'https://api.trello.com/1/cards/'+cardID,
+                  type: 'PUT',
+                  data: {'key':appid,'token':token,'idList':adBoard,'pos':1},
+                  success: function(result) {
+                      // Do something with the result
+                      console.log('Moved '+ e.title);
+                  }
+              });
+              
+   
+   
+       $('#'+cardID).remove();
+   
+   
+   }
+     if($('#tl_campaigns .thumb').length==0){ google.script.run.popupDownload();  $('.loading-img').hide(); return}
+     
+       var tag =  $('#tl_campaigns .thumb:first');
+      
+      
+      //  card = {
+//    'id':'5c764dd91d66110488257535',
+//    'title':'CP-L-27021925-I Eat People',
+//    'labels':['5bffa8a9676ccf7de23cd74f','5c734e621e7f960fe1081868'],
+//    'members':['5736dea09c6a2ae2eb581101','5b0bd064244db0b9122bc544']
+//     
+//  }
+        var card = {
+              'id':tag.attr('id'),
+              'title':tag.find('.title').text(),
+              'labels':tag.data('labels').split(','),
+              'members':tag.data('members').split(','),
+              'thumb': tag.find('img').attr('src')
+           }
+    console.log(card);
+       google.script.run.withSuccessHandler(startImport).withFailureHandler(failHandler).importCard(card);
+  }
+ 
+ function failHandler(e){
+    alert('Lỗi: '+e);
+    $('#tl_campaigns .thumb:first').remove();
+    startImport();
+ 
+ }
+ 
+ function insertDone(){
+    if(confirm('Chuyển cần chạy Ad ?')){
+          $('#tl_campaigns .thumb').each(function(){ 
+              var cardID = this.id;
+              $.ajax({
+                  url: 'https://api.trello.com/1/cards/'+cardID+'/idList',
+                  type: 'PUT',
+                  data: {'key':appid,'token':token,'value':'59156194a9e09e8aaf2f610e'},
+                  success: function(result) {
+                      // Do something with the result
+                  }
+              });
+              
+              
+          
+          });
+          
+          alert('done');
+      
+    }
+ }
+ 
+ function loadList(){
+   $('.loading-img').show();
+   $('#tl_campaigns').html('');
+   $.get('https://api.trello.com/1/lists/'+NeedToRunListID+'/cards',{'key':appid,'token':token,'fields':'id,name,idAttachmentCover,idLabels,labels,idMembers'},function(e){
+     for(let card of e ){
+       
+       if(card.name[card.name.length-1]!='-'){
+     
+//         if(card.idLabels.length<2) {
+//           $('#mainPanel').append('<div><strong>'+card.name+'</strong> chưa chọn màu! </div>'); continue;
+//         }
+           $.get('https://api.trello.com/1/cards/'+card.id+'/attachments/'+card.idAttachmentCover,{'key':appid,'token':token},function(e){
+                var labels = [];
+                for(let label of card.labels ){
+                   labels.push(label.name);
+                }
+                
+                
+                $('#tl_campaigns').append('<div class="thumb" id="'+card.id+'" data-labels="'+labels.join(',')+'" data-members="'+card.idMembers.join(',')+'"> <span class="delete">x</span> <img src="'+e.url+'"/> <span class="title">'+card.name+'</span> </div>');
+                
+             } );
+        }
+       
+    }
+    
+     $('.loading-img').hide();
+     
+  });
+ 
+ 
+ 
+ }
+ 
+function searchTrello(){
+  $('.loading-img').show();
+   $('#mainPanel').html('');
+  var campID = $('#txt_search').val();
+  $.get('https://api.trello.com/1/search',{'key':appid,'token':token,'idBoards':boardid,'query':campID},function(e){
+     if(e.cards.length>0){
+        var cardsID;
+        cardsID = e.cards.find(camps=>camps.name ===campID);
+        if(cardsID){
+        $.get('https://api.trello.com/1/cards/'+cardsID.id+'/attachments',{'key':appid,'token':token},function(e){
+            if(e.length>0){
+             $('#mainPanel').append('Found '+e.length +' images <br>');
+                $.each(e,function(){
+
+                    $('#mainPanel').append('<img src="'+this.url+'"/>');
+                    
+                
+                })
+                 $('.loading-img').hide();
+            
+            }
+            else alert('No attachment!');
+            
+        } );
+        }
+        else alert('not found in list');
+     }
+     else alert('not found!');
+     
+  });
+
+
+}
+
+function compareSecondColumn(a, b) {
+  return  parseInt( b[1] ) - parseInt(a[1]);
+}
+
+function processProducts(products){
+
+   for(var k=0;k<products.length;k++){
+       products[k].push(k);
+      
+   }
+   
+  products.sort(compareSecondColumn);
+
+ return products;
+
+}
+
+  function showProducts(products){
+   var html = '<table>';
+
+     products = processProducts(products);
+
+ 
+     for(var i=0;i<products.length;i++){
+       
+       
+              html += '<tr>';
+              html += '<td class="thread" id="'+(products[i][2]+1)+'" >';
+              html += '<input  type="checkbox" class="ckselect">';
+              html += '<span class="name">'+products[i][0]+'</span>';
+              html += '</td></tr>';
+         
+     
+     }
+ 
+      html += '</table>';
+      
+      document.getElementById('mainPanel').innerHTML =html;
+        $('.ckselect').on('change',function(){
+           $(this).parent().toggleClass('threadSelected')
+      })
+      $('span.name').click(function(){
+            var ckbox=    $(this).parent().find('.ckselect');
+          //  $(this).find('td').toggleClass('threadSelected');
+            ckbox.prop("checked", !ckbox.prop("checked")).trigger('change');
+      })
+      
+  }
+
+
+ 
+  function putProducts(){
+    var result = [];
+    
+     $('.threadSelected').each(function(){
+        var $this = $(this);
+         $this.removeClass('threadSelected');
+        $this.find('.ckselect').prop('checked',false);
+        var pID = $this.attr('id');
+        var text = $this.text();
+        result.push([pID,text]);
+       
+     })
+
+     google.script.run.insertTags(result);
+  }
+function formatNumber(number)
+{
+    number = number+ 'đ';
+    var x = number.split('.');
+    var x1 = x[0];
+    var x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
+}
+</script>
