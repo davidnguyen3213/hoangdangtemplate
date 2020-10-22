@@ -100,6 +100,8 @@ Logger.log(ptype);
   var sheet = "Imported";
   if(domain == "https://casespring.com/products/"){
     sheet = "Casespring";
+    handler = handler.split("_").join("-").toLowerCase();
+    handler = handler.indexOf('-') == 0 ? handler.substring(1) : handler;
   }
  SpreadsheetApp.getActive().getSheetByName(sheet).appendRow([card.title,fdate,card.thumb,'=image("'+card.thumb+'",1)',user,domain+handler, bitly(domain+handler,RebrandAPI),card.id]); 
  return card;
